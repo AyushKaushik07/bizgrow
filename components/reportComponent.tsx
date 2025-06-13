@@ -1,14 +1,19 @@
+'use client';
+
 import React, { ChangeEvent, useEffect, useState } from 'react'
 import { Input } from './ui/input'
 import { Button } from './ui/button'
 import { Label } from './ui/label'
 import { toast } from "sonner"
 
-type Props = {}
+type Props = {
+  onReportConfirmation?: (data: string) => void;
+}
 
-const ReportComponent = (props: Props) => {
-    const [base64Data, setbase64Data] = useState("");
-    const [summary, setSummary] = useState(""); // Add state for summary text
+const ReportComponent = ({ onReportConfirmation }: Props) => {
+    const [base64Data, setBase64Data] = useState("");
+    const [summary, setSummary] = useState(""); 
+    const [isLoading, setIsLoading] = useState(false);
     
     useEffect(() => {
         toast.success("Report component loaded");
@@ -35,7 +40,7 @@ const ReportComponent = (props: Props) => {
                 toast.error("Invalid File Type", {
                     description: "Please upload PDF or image files only",
                 });
-                return
+                return;
             }
 
             if (isValidDoc) {
@@ -44,7 +49,7 @@ const ReportComponent = (props: Props) => {
                     const fileContent = reader.result as string;
                     console.log(fileContent);
                     toast.success("PDF Uploaded Successfully");
-                    setbase64Data(fileContent);
+                    setBase64Data(fileContent);
                 }
                 reader.readAsDataURL(file);
             }
@@ -56,10 +61,10 @@ const ReportComponent = (props: Props) => {
                         const fileContent = reader.result as string;
                         console.log(fileContent);
                         toast.success("Image Compressed & Uploaded");
-                        setbase64Data(fileContent);
+                        setBase64Data(fileContent);
                     }
                     reader.readAsDataURL(compressedFile);                                
-                })                
+                });                
             }
         }
     }
@@ -71,7 +76,9 @@ const ReportComponent = (props: Props) => {
             });
             return;
         }
-    
+        
+        setIsLoading(true);
+        
         try {
             toast.info("Extracting details...", {
                 description: "This may take a few moments"
@@ -90,7 +97,7 @@ const ReportComponent = (props: Props) => {
             if (response.ok) {
                 const reportText = await response.text();
                 console.log(reportText);
-                setSummary(reportText); // Update the summary state
+                setSummary(reportText);
                 toast.success("Report Extracted Successfully");
             } else {
                 toast.error("Extraction Failed", {
@@ -102,29 +109,52 @@ const ReportComponent = (props: Props) => {
             toast.error("Network Error", {
                 description: "Unable to connect to the server"
             });
+        } finally {
+            setIsLoading(false);
         }
     }
+
+    const handleConfirmation = () => {
+        if (summary && onReportConfirmation) {
+            onReportConfirmation(summary);
+        }
+    };
 
     return (
         <div className='grid w-full items-start gap-6 overflow-auto p-4 pt-0'>
             <fieldset className='relative grid gap-6 rounded-lg border p-4'>
                 <legend className='text-sm font-medium'>Report</legend>
+                {isLoading && (
+                    <div className='absolute z-10 w-full h-full bg-card/90 rounded-lg flex flex-row items-center justify-center'>
+                        <div className='text-sm font-medium'>Extracting...</div>
+                    </div>
+                )}
                 <Input type='file' onChange={handleReportSelection}/>
-                <Button onClick={extractDetails}>1. Upload File</Button>
+                <Button onClick={extractDetails} disabled={isLoading}>
+                    {isLoading ? "Processing..." : "1. Upload File"}
+                </Button>
                 <Label>Report Summary</Label>
                 <textarea
-                   value={summary} // Bind to state
-                   onChange={(e) => setSummary(e.target.value)} // Allow editing
+                   value={summary}
+                   onChange={(e) => setSummary(e.target.value)}
                    placeholder='Extracted data from the documents will appear here. Get better recommendations by providing additional Company history and details...'
                    className='min-h-72 resize-none border-0 p-3 shadow-none focus-visible:ring-0'
+                   disabled={isLoading}
                 />
-                <Button variant={'destructive'} className='bg-[#D90013]'>2. Looks Good to Go</Button>
+                <Button 
+                    variant={'destructive'} 
+                    className='bg-[#D90013]' 
+                    disabled={isLoading || !summary}
+                    onClick={handleConfirmation}
+                >
+                    2. Looks Good to Go
+                </Button>
             </fieldset>
         </div>
-    )
+    );
 }
 
-export default ReportComponent
+export default ReportComponent;
 
 function compressImage(file: File, callback: (compressedFile: File) => void) {
     const reader = new FileReader();

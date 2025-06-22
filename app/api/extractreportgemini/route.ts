@@ -1,14 +1,19 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-const prompt = `Attached is an image of the Industry report.
-Go over the industry report and identify markers that show slight or large abnormalities.
-Then summarize in 200 words. You may increase the word limit if the report has multiple pages.
-Make sure to include numerical values and key details from the report including report title.
-Also identify the surrounding competition and suggest suitable approaches to make great progress in the industry
-## summary`;
+const prompt = `Analyze this industrial report image and:
+1. Identify any abnormalities or anomalies
+2. Summarize key findings in 200-300 words
+3. Include numerical values and key details
+4. Analyze surrounding competition
+5. Suggest improvement approaches
+
+## Summary Format:
+- Use clear paragraphs separated by double line breaks
+- Include specific metrics where available
+- Focus on actionable insights`;
 
 export async function POST(req: Request) {
   try {
@@ -16,19 +21,13 @@ export async function POST(req: Request) {
     
     const imagePart = fileToGenerativePart(base64);
     
-    // Generate content with both text and image
     const result = await model.generateContent([prompt, imagePart]);
     const response = result.response;
     const text = response.text();
     
-    console.log(text);
-    
-    // Return the actual response instead of dummy text
     return new Response(text, { 
       status: 200,
-      headers: {
-        'Content-Type': 'text/plain'
-      }
+      headers: { 'Content-Type': 'text/plain' }
     });
     
   } catch (error) {
@@ -38,7 +37,6 @@ export async function POST(req: Request) {
 }
 
 function fileToGenerativePart(base64Data: string) {
-  // Extract mime type and data from data URL
   const [header, data] = base64Data.split(',');
   const mimeType = header.split(':')[1].split(';')[0];
   

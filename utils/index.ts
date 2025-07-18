@@ -38,4 +38,4 @@ export async function queryPineconeVectorStore(
         console.error('Pinecone query error:', error);
         return "<error>";
     }
-}.
+}

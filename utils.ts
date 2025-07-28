@@ -48,4 +48,4 @@ export async function queryPineconeVectorStore(
         console.error('Pinecone query error:', error);
         throw new Error(`Pinecone query failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-}
+},
